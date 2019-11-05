@@ -1,0 +1,88 @@
+@charset "EUC-KR";
+@font-face { font-family: 'NanumSquare'; src: url(NANUMSQUARER.ttf) format('truetype'); }
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    	padding: 0;
+    	font-family: NanumSquare;
+    	line-height: 150%;
+    	white-space: normal;
+    	word-break: break-word;
+    }
+    div#wapper {
+        width: 100%;
+        text-align: left;
+        min-height: 300px;
+        margin: 0 auto;
+    }
+    div#editor {
+        width: 100dp;
+        height: 100dp;
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+    header, footer, nav, aside, section {
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        height: 50px;
+        background-color: #f1f7f1;
+        border: 1px solid #d8ebd7;
+        font-weight: bold;
+    }
+    header#bar {
+        height: 60px;
+        background-color: #04aa00;
+        border: 1px solid #04aa00;
+        color: #fff;
+        font-size: large;
+        font-weight: bold;
+        margin-left: 20px
+        vertical-align: middle;
+    }
+    nav {
+        background-color: white;
+        width: 40%;
+        height: calc(100vh - 164px);
+        float: left;
+        overflow-y:scroll;
+        word-wrap: break-word;
+        margin: 0px;
+    }
+    section {
+        background-color: white;
+        height: calc(100vh - 314px);
+        width: 60%;
+        float: right;
+    }
+    aside {
+        background-color: goldenrod;
+        width: 0px;
+    }
+    footer {
+        height: 50px;
+        background-color: #f1f7f2;
+        position: relatiev;
+        clear: both;
+    }
+    article {
+        width: 90%;
+        background-color: #999;
+    }
+    img {
+    	max-width: 30%;
+    	max-height: 30%;
+    }
+    table#activitylist {
+        margin: 20px;
+        padding: 20px;
+    }
+    font#date {
+    	font-size: small;
+    	color: orange;
+    }
