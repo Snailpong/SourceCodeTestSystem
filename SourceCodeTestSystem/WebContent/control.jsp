@@ -1,3 +1,5 @@
+<%@page import="java.text.SimpleDateFormat"%>
+<%@page import="java.text.DateFormat"%>
 <%@page import="java.io.File"%>
 <%@page import="java.io.PrintWriter"%>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
@@ -23,26 +25,32 @@
 			} else {
 				session.setAttribute("id", id);
 				session.setAttribute("name", member.getName());
-				ArrayList<Course> courses = bean.getCoursesForStudent(id);
-				session.setAttribute("courses", courses);
 				
-				request.setAttribute("courseidforclass", courses.get(0).getCourseIdForClass());
-				request.setAttribute("coursename", courses.get(0).getCourseName());
-				request.setAttribute("courseyear", courses.get(0).getCourseYear());
-				request.setAttribute("coursesemester", courses.get(0).getCourseSemester());
-				request.setAttribute("courseid", courses.get(0).getCourseId());
-				request.setAttribute("courseclassnum", courses.get(0).getCourseClassNum());
-				request.setAttribute("professorid", courses.get(0).getProfessorId());
-				
-				ArrayList<ActivityInfo> activityInfo = bean.getActivityInfoForStudent(id, courses.get(0).getCourseIdForClass());
-				request.setAttribute("activityinfo", activityInfo);
-			
-				pageContext.forward("problemset.jsp");
+				response.sendRedirect("control.jsp?action=seecourse_init");
 			}
 		}
 		else {
 			out.println("<script>alert('아이디나 비밀번호를 확인하세요'); location.href='login.jsp';</script>");
 		}
+	}
+	
+	if(action.equals("seecourse_init")){
+		String id = (String)session.getAttribute("id");
+		ArrayList<Course> courses = bean.getCoursesForStudent(id);
+		session.setAttribute("courses", courses);
+		
+		request.setAttribute("courseidforclass", courses.get(0).getCourseIdForClass());
+		request.setAttribute("coursename", courses.get(0).getCourseName());
+		request.setAttribute("courseyear", courses.get(0).getCourseYear());
+		request.setAttribute("coursesemester", courses.get(0).getCourseSemester());
+		request.setAttribute("courseid", courses.get(0).getCourseId());
+		request.setAttribute("courseclassnum", courses.get(0).getCourseClassNum());
+		request.setAttribute("professorid", courses.get(0).getProfessorId());
+		
+		ArrayList<ActivityInfo> activityInfo = bean.getActivityInfoForStudent(id, courses.get(0).getCourseIdForClass());
+		request.setAttribute("activityinfo", activityInfo);
+	
+		pageContext.forward("problemset.jsp");
 	}
 	
 	if(action.equals("seecourse")){
@@ -72,6 +80,7 @@
 				bean.getActivityInfoForStudent((String)session.getAttribute("id"), courseidforclass);
 		
 		request.setAttribute("activityinfo", activityInfo.get(activityid-1));
+		request.setAttribute("problemid", request.getParameter("problemid"));
 		request.setAttribute("activityid", request.getParameter("activityid"));
 		request.setAttribute("coursename", request.getParameter("coursename"));
 		request.setAttribute("courseclassnum", request.getParameter("courseclassnum"));
@@ -83,7 +92,6 @@
 		String courseidforclass = request.getParameter("courseidforclass");
 		String problemname = request.getParameter("problemname");
 		boolean auto_scoring_yn = request.getParameter("auto_scoring_yn").equals("auto");
-		double maxscore = Double.parseDouble(request.getParameter("maxscore"));
 		String markdown = request.getParameter("markdown");
 		
 		ArrayList<String> inputs = new ArrayList<String>();
@@ -96,10 +104,13 @@
 			num++;
 		}
 		
-		String prob_filename = "prob_" + "0" + ".txt";
-		String io_filename = "io_" + "0" + ".txt"; 
+		int count = bean.makeProblem(courseidforclass, num, auto_scoring_yn, problemname);
+		
+		String prob_filename = "prob_" + count + ".txt";
+		String io_filename = "io_" + count + ".txt"; 
 		
 		try{
+			
 			String rltv = "/problems/code/" + courseidforclass + "/";
 			String filePath = application.getRealPath(rltv);
 			File file = new File(filePath);
@@ -124,12 +135,39 @@
 			out.println("<script>alert('저장 실패: "+ e.getMessage() +"');</script>");
 			e.printStackTrace();
 		}
-		
-		out.println("<script>alert('" + courseidforclass + " " + problemname + " " + auto_scoring_yn + " " + maxscore + " " + markdown + " " + num + "');</script>");
-		
-		bean.makeProblem(courseidforclass, num, auto_scoring_yn, maxscore, problemname);
-		
-		//pageContext.forward("login.jsp");
+		request.setAttribute("courseidforclass", courseidforclass);
+		pageContext.forward("problembank.jsp");
 	}
 	
+	if(action.equals("makeactivity")){
+		DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm");
+		
+		String id = (String)session.getAttribute("id");
+		String courseidforclass = request.getParameter("courseidforclass");
+		String activityname = request.getParameter("activityname");
+		String password = request.getParameter("password");
+		int language = Integer.parseInt(request.getParameter("language"));
+		boolean analysis_yn = request.getParameter("analysis_yn").equals("yes");
+		boolean ispassword = request.getParameter("ispassword").equals("yes");
+		Date starttime = (Date)formatter.parse(request.getParameter("starttime")); 
+		Date endtime = (Date)formatter.parse(request.getParameter("endtime")); 
+		
+		int num = 1;
+		double sumScore = 0;
+		ArrayList<Integer> probnums = new ArrayList<Integer>();
+		ArrayList<Double> maxscores = new ArrayList<Double>();
+		
+		while(request.getParameter("prob_" + num) != null){
+			probnums.add(Integer.parseInt(request.getParameter("prob_" + num)));
+			maxscores.add(Double.parseDouble(request.getParameter("maxscore_" + num)));
+			sumScore += Double.parseDouble(request.getParameter("maxscore_" + num));
+			num++;
+		}
+		
+		bean.makeActivity(courseidforclass, activityname, password, language, analysis_yn, ispassword,
+				starttime, endtime, num - 1, sumScore, probnums, maxscores, id);
+		
+		response.sendRedirect("control.jsp?action=seecourse_init");
+		
+	}
 %>

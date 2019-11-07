@@ -32,8 +32,6 @@
 	<option value="notauto">수동 채점</option>
 </select>
 
-<br><br>최대 점수 <input type="text" name="maxscore">
-
 <br><br>테스트 케이스<br>
 <button type="button" name="addStaff">테스트 케이스 추가</button>
 <button class="btn btn-default" type="button" name="delStaff">테스트 케이스 삭제</button>
@@ -43,8 +41,8 @@
         <tbody>
             <tr name="trStaff">
                 <td>
-                    <input type="text" name="input_0" placeholder="입력" style="width:400px; height:100px">
-                    <input type="text" name="output_0" placeholder="출력" style="width:400px; height:100px">
+                    <input type="text" name="input_0" placeholder="입력1" style="width:400px; height:100px">
+                    <input type="text" name="output_0" placeholder="출력1" style="width:400px; height:100px">
                     
                 </td>
             </tr>
@@ -68,7 +66,7 @@
         
         var addStaffText =  '<tr name="trStaff">'+
             '   <td>'+
-            '   <input type="text" name="input_' + num + '" placeholder="입력' + num + '" style="width:400px; height:100px">' +
+            '   <input type="text" name="input_' + num+ + '" placeholder="입력" style="width:400px; height:100px">' +
             '       <input type="text" name="output_' + num + '" placeholder="출력" style="width:400px; height:100px">'+
             '       </td>'+
             '       </tr>';

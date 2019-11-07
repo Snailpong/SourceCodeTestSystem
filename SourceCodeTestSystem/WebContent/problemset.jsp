@@ -6,12 +6,13 @@
 <meta charset="UTF-8">
 <title>SCTS</title>
 <link rel="stylesheet" href="css/problemset.css">
-
 <jsp:useBean id="courses" scope="session" class="java.util.ArrayList" />
 <jsp:useBean id="activityinfo" scope="request" class="java.util.ArrayList" />
 </head>
 <body>
 <%
+	request.setCharacterEncoding("utf-8");
+
 	if(session.getAttribute("id") == null) {
 		out.println("<script>alert('세션이 만료되었습니다. 다시 로그인해 주세요.'); location.href='login.jsp';</script>");
 	}
@@ -56,7 +57,7 @@
 			<tr><td width=75% height="40px"><a href="control.jsp?action=seeproblem&courseidforclass=
 			<%=info.getCourseidforclass()%>&coursename=<%= request.getAttribute("coursename") %>
 			&courseclassnum=<%= request.getAttribute("courseclassnum") %>
-			&activityid=<%=info.getActivityid() %>">
+			&activityid=<%=info.getActivityid() %>&problemid=1">
 			<%=info.getActivityname() %></a> <font color="red" size="2">
 			<%= transFormat.format(info.getStarttime()) + " ~ " + transFormat.format(info.getEndtime())%></font></td>
 			<td width=25%  align="center"><%=info.getScore() + " / " + info.getMaxscore() %></td></tr>
@@ -64,8 +65,8 @@
 		</table>
 		
 		<% if(session.getAttribute("id").equals(request.getAttribute("professorid"))){ %>
-		<button type=button onclick=addactivity>활동 추가</button> 
-		<button type=button onclick=problembank>문제은행</button>
+		<button type=button onclick="location.href='makeactivity.jsp?courseidforclass=<%=request.getAttribute("courseidforclass")%>'">활동 추가</button> 
+		<button type=button onclick="location.href='problembank.jsp?courseidforclass=<%=request.getAttribute("courseidforclass")%>'">문제은행</button>
 		<button type=button onclick="location.href='makeproblem.jsp?courseidforclass=<%=request.getAttribute("courseidforclass")%>'">문제 추가</button>
 		<%} %>
         </section>

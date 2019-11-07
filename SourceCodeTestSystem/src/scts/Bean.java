@@ -5,7 +5,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 
 public class Bean { 
 	Connection conn = null;
@@ -97,7 +99,7 @@ public class Bean {
 		connect();
 		String sql = "select a.*, b.score, b.comment, b.isopened from courseactivity as a left join grade as b" + 
 				" on a.courseidforclass = b.courseidforclass and a.activityid = b.activityid" + 
-				" where a.courseidforclass = '" + courseidforclass + "' and b.id = '" + studentid + "'";
+				" where a.courseidforclass = '" + courseidforclass + "' and b.id = '" + studentid + "'  order by a.activityid";
 		try {
 			pstmt = conn.prepareStatement(sql);
 			ResultSet rs = pstmt.executeQuery();
@@ -128,10 +130,157 @@ public class Bean {
 		}
 		return activityInfo;
 	}
+
+	public int makeProblem(String courseidforclass, int test_num, 
+			boolean auto_scoring_yn, String problemname) {
+		connect();
+		int count = 0;
+		String sql 
+		 = "insert into problem(courseidforclass,testcasenum,autocheck,problemname) values(?,?,?,?)";
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, courseidforclass);
+			pstmt.setInt(2, test_num);
+			pstmt.setBoolean(3, auto_scoring_yn);
+			pstmt.setString(4, problemname);
+			
+			pstmt.executeUpdate();
+			
+			pstmt = conn.prepareStatement("SELECT COUNT(*) FROM problem where courseidforclass='"
+					+ courseidforclass + "'");
+			ResultSet rs = pstmt.executeQuery();
+			rs.next();
+			count = rs.getInt("COUNT(*)");
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return -1;
+		}
+		finally {
+			disconnect();
+		}
+		return count;
+	}
 	
-	public boolean makeProblem(String courseidforclass, int test_num, 
-			boolean auto_scoring_yn, double maxscore, String problemname) {
+	public ArrayList<Problem> getProblems(String courseidforclass) {
+		connect();
+		ArrayList<Problem> problems = new ArrayList<Problem>();
+		String sql = "select * from problem where courseidforclass='"+courseidforclass+"'";
+		try {
+			pstmt = conn.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				Problem problem = new Problem();
+				
+				problem.setCourseidforclass(rs.getString("courseidforclass"));
+				problem.setProblemnum(rs.getInt("problemnum"));
+				problem.setTestcasenum(rs.getInt("testcasenum"));
+				problem.setAutocheck(rs.getBoolean("autocheck"));
+				problem.setProblemname(rs.getString("problemname"));
+				
+				problems.add(problem);
+			}
+			rs.close();
+		} catch(SQLException e) {
+			e.printStackTrace();
+		} finally {
+			disconnect();
+		}
+		return problems;
+	}
+	
+	public boolean makeActivity(String courseidforclass, String activityname, String password, 
+			int language, boolean analysis_yn, boolean ispassword, Date starttime, Date endtime, 
+			int numberofproblem, double maxscore, ArrayList<Integer> probnums, ArrayList<Double> maxscores, String id) {
+		connect();
+		String sql 
+		 = "insert into courseactivity(courseidforclass,activitytype,activityname,oopcheck,starttime,"
+		 		+ "endtime,ispassword,pw,maxscore,language, numberofproblem) values(?,?,?,?,?,?,?,?,?,?,?)";
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, courseidforclass);
+			pstmt.setInt(2, 0);
+			pstmt.setString(3, activityname);
+			pstmt.setBoolean(4, analysis_yn);
+			pstmt.setTimestamp(5, new Timestamp(starttime.getTime()));
+			pstmt.setTimestamp(6, new Timestamp(endtime.getTime()));
+			pstmt.setBoolean(7, ispassword);
+			pstmt.setString(8, password);
+			pstmt.setDouble(9, maxscore);
+			pstmt.setInt(10, language);
+			pstmt.setInt(11, numberofproblem);
+			
+			pstmt.executeUpdate();
+			
+			pstmt = conn.prepareStatement("SELECT COUNT(*) FROM courseactivity where courseidforclass='" + courseidforclass + "'");
+			ResultSet rs = pstmt.executeQuery();
+			rs.next();
+			int count = rs.getInt("COUNT(*)");
+			rs.close();
+			
+			for(int i=0; i!=numberofproblem; ++i) {
+				pstmt = conn.prepareStatement("insert into activityproblem(courseidforclass,"
+						+ " activityid, problemnum, maxscore) values(?,?,?,?)");
+				pstmt.setString(1, courseidforclass);
+				pstmt.setInt(2, count);
+				pstmt.setInt(3, probnums.get(i));
+				pstmt.setDouble(4, maxscores.get(i));
+				pstmt.executeUpdate();
+			}
+			
+			pstmt = conn.prepareStatement("select id from studentcourse where courseidforclass='" + courseidforclass + "'");
+			rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String student_id = rs.getString("id");
+				
+				pstmt = conn.prepareStatement("insert into grade(id, courseidforclass, activityid, score, isopened) values(?,?,?,?,?)");
+				pstmt.setString(1, student_id);
+				pstmt.setString(2, courseidforclass);
+				pstmt.setInt(3, count);
+				pstmt.setInt(4, 0);
+				pstmt.setBoolean(5, false);
+				pstmt.executeUpdate();
+			}
+			rs.close();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+		finally {
+			disconnect();
+		}
 		return true;
+	}
+	
+	public ArrayList<ActivityProblem> getActivityProblem(String courseidforclass, int activityid){
+		ArrayList<ActivityProblem> activityproblems = new ArrayList<ActivityProblem>();
+		String sql = "select * from activityproblem natural join problem "
+				+ "where courseidforclass='" + courseidforclass + "' and activityid=" + activityid;
+		connect();
+		try {
+			pstmt = conn.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				ActivityProblem activityproblem = new ActivityProblem();
+				
+				activityproblem.setCourseidforclass(rs.getString("courseidforclass"));
+				activityproblem.setProblemnum(rs.getInt("problemnum"));
+				activityproblem.setActivityid(rs.getInt("activityid"));
+				activityproblem.setProblemid(rs.getInt("problemid"));
+				activityproblem.setMaxscore(rs.getDouble("maxscore"));
+				activityproblem.setTestcasenum(rs.getInt("testcasenum"));
+				activityproblem.setAutocheck(rs.getBoolean("autocheck"));
+				activityproblem.setProblemname(rs.getString("problemname"));
+				
+				activityproblems.add(activityproblem);
+			}
+			rs.close();
+		} catch(SQLException e) {
+			e.printStackTrace();
+		} finally {
+			disconnect();
+		}
+		return activityproblems;
 	}
 	
 	/*
@@ -181,95 +330,5 @@ public class Bean {
 		}
 		return true;
 	}
-	
-	// �떊洹� 二쇱냼濡� 硫붿떆吏� 異붽� 硫붿꽌�뱶
-	public boolean insertDB(AddrBook addrbook) {
-		connect();
-		// sql 臾몄옄�뿴 , gb_id �뒗 �옄�룞 �벑濡� �릺誘�濡� �엯�젰�븯吏� �븡�뒗�떎.
-				
-		String sql ="insert into addrbook(ab_name,ab_email,ab_birth,ab_tel,ab_comdept,ab_memo) values(?,?,?,?,?,?)";
-		
-		try {
-			pstmt = conn.prepareStatement(sql);
-			pstmt.setString(1,addrbook.getAb_name());
-			pstmt.setString(2,addrbook.getAb_email());
-			pstmt.setString(3, addrbook.getAb_birth());
-			pstmt.setString(4,addrbook.getAb_tel());
-			pstmt.setString(5,addrbook.getAb_comdept());
-			pstmt.setString(6,addrbook.getAb_memo());
-			pstmt.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return false;
-		}
-		finally {
-			disconnect();
-		}
-		return true;
-	}
-
-	// �듅�젙 二쇱냼濡� 寃뚯떆湲� 媛��졇�삤�뒗 硫붿꽌�뱶
-	public AddrBook getDB(int gb_id) {
-		connect();
-		
-		String sql = "select * from addrbook where ab_id=?";
-		AddrBook addrbook = new AddrBook();
-		
-		try {
-			pstmt = conn.prepareStatement(sql);
-			pstmt.setInt(1,gb_id);
-			ResultSet rs = pstmt.executeQuery();
-			
-			// �뜲�씠�꽣媛� �븯�굹留� �엳�쑝誘�濡� rs.next()瑜� �븳踰덈쭔 �떎�뻾 �븳�떎.
-			rs.next();
-			addrbook.setAb_id(rs.getInt("ab_id"));
-			addrbook.setAb_name(rs.getString("ab_name"));
-			addrbook.setAb_email(rs.getString("ab_email"));
-			addrbook.setAb_birth(rs.getString("ab_birth"));
-			addrbook.setAb_tel(rs.getString("ab_tel"));
-			addrbook.setAb_comdept(rs.getString("ab_comdept"));
-			addrbook.setAb_memo(rs.getString("ab_memo"));
-			rs.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		finally {
-			disconnect();
-		}
-		return addrbook;
-	}
-	
-	// �쟾泥� 二쇱냼濡� 紐⑸줉�쓣 媛��졇�삤�뒗 硫붿꽌�뱶
-	public ArrayList<AddrBook> getDBList() {
-		connect();
-		ArrayList<AddrBook> datas = new ArrayList<AddrBook>();
-		
-		String sql = "select * from addrbook order by ab_id desc";
-		try {
-			pstmt = conn.prepareStatement(sql);
-			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
-				AddrBook addrbook = new AddrBook();
-				
-				addrbook.setAb_id(rs.getInt("ab_id"));
-				addrbook.setAb_name(rs.getString("ab_name"));
-				addrbook.setAb_email(rs.getString("ab_email"));
-				addrbook.setAb_comdept(rs.getString("ab_comdept"));
-				addrbook.setAb_birth(rs.getString("ab_birth"));
-				addrbook.setAb_tel(rs.getString("ab_tel"));
-				addrbook.setAb_memo(rs.getString("ab_memo"));
-				datas.add(addrbook);
-			}
-			rs.close();
-			
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		finally {
-			disconnect();
-		}
-		return datas;
-	}
-	
-	*/
+*/
 }
