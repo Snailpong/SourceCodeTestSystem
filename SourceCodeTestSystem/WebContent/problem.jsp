@@ -1,3 +1,4 @@
+<%@page import="java.io.File"%>
 <%@page import="java.io.BufferedReader"%>
 <%@page import="java.io.FileReader"%>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
@@ -29,14 +30,18 @@
 </style>
 </head>
 <body>
+<%! String result = ""; %>
+<%! String code = "#include <stdio.h>\nint main(){\n    printf(\"Hello World\\n\");\n    return 0;\n}"; %>
 <%
 	String courseidforclass =  request.getParameter("courseidforclass");
 	int problemid = Integer.parseInt(request.getParameter("problemid"));
+	String id = (String)session.getAttribute("id");
+	String activityid = request.getParameter("activityid");
 	ArrayList<ActivityInfo> infos = bean.getActivityInfoForStudent((String)session.getAttribute("id"), courseidforclass);
 	
 	ActivityInfo info = new ActivityInfo();
 	for(ActivityInfo info_t : infos){
-		if(info_t.getActivityid() == Integer.parseInt(request.getParameter("activityid"))){
+		if(info_t.getActivityid() == Integer.parseInt(activityid)){
 			info = info_t;
 			break;
 		}
@@ -55,10 +60,11 @@
 	int problemnum = ap.getProblemnum();
 	
 	String problem_markdown = "";
-	String prob_filename = "prob_" + ap.getProblemnum() + ".txt";
-	String io_filename = "io_" + ap.getProblemnum() + ".txt"; 
-	String rltv = "/problems/code/" + courseidforclass + "/";
+	String prob_filename = "prob.txt";
+	String rltv = "/problems/code/" + courseidforclass + "/problems/probnum_" + ap.getProblemnum() + "/";
 	String filePath = application.getRealPath(rltv);
+	result = (String)request.getAttribute("resp");
+	if(result == null || result.length() == 0) result = "여기에 실행 결과가 표시됩니다.";
 
     FileReader fileReader = new FileReader(filePath + prob_filename);
 
@@ -74,7 +80,37 @@
     
     fileReader.close();
     
+    rltv = "/problems/code/" + courseidforclass + "/activities/activity_" + activityid +
+			"/problemid_" + problemid + "/" + id + "/" + id + bean.langInt2Str(info.getLanguage());
+	filePath = application.getRealPath(rltv);
+    
+    File file = new File(filePath);
+	if(file.exists()){
+		code = "";
+		fileReader = new FileReader(file);
+
+	    try (BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+	    	String line;
+	      	while((line = bufferedReader.readLine()) != null) {
+	      		code += line + "\n";
+	      	}
+	    }
+	    code = code.substring(0, code.length()-1);
+	    code = code.replace("<", "&lt;");
+	    fileReader.close();
+	} else {
+
+	}
+    
 %>
+<form action=control.jsp method=post id=forms>
+<input type=hidden name="action" value="submitproblem">
+<input type=hidden name="courseidforclass" value="<%= request.getParameter("courseidforclass") %>">
+<input type=hidden name="coursename" value="<%= request.getParameter("coursename") %>">
+<input type=hidden name="courseclassnum" value="<%= request.getParameter("courseclassnum") %>">
+<input type=hidden name="problemid" value="<%= request.getParameter("problemid") %>">
+<input type=hidden name="activityid" value="<%= request.getParameter("activityid") %>">
+</form>
     <div id="wapper">
         <!--헤더시작-->
         <header id="bar">
@@ -82,12 +118,14 @@
             <%= request.getParameter("coursename") %> (<%= request.getParameter("courseclassnum") %>)</p>
         </header>
         <header>
-        <table><tr style="width:100%;">
-            <td><div style = "padding: 10px 0px 0px 15px;"><%= activityinfo.getActivityname() %></div></td>
-            <td><div style = "padding: 10px 0px 0px 0px; float:right">
+        <table><tr>
+            <td style="width:300px"><div style="padding: 10px 0px 0px 15px;">
+            <%= activityinfo.getActivityname() + " " + problemid + "번"%></div></td>
+            <td style="width:calc(100vw - 300px)"><div style = "padding: 10px 10px 0px 0px; float:right">
             	<button id="prev" onclick="prev();">이전 문제</button>
             	<button id="next" onclick="next();">다음 문제</button>
-            	<button id="submit" onclick="submit();">제출</button></div></td>
+            	<button onclick="submit();">제출</button>
+            	<button id="exit" onclick="exit();">종료</button></div></td>
         </tr></table></header>
         <!--네비게이션-->
         <nav>
@@ -113,36 +151,78 @@
         <table>
         <tr>
         <div id="editorContainer">
-        	<div id="editor">public class solution {
-    public static void main(String args[]) {
-        System.out.println("this is example");
-    }
-}</div></div>
+        	<div id="editor"><%= code %></div></div>
         </tr>
-        <tr height="150px"> 여기에 실행 결과가 표시됩니다.
+        <tr id="over"><div id="over"><%= result %></div>
         </tr>
         </table>
-        	
-    
+ 
 <script src="${pageContext.request.contextPath}/js/ace-builds/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 <script>
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/chrome");
     editor.session.setMode("ace/mode/java");
     document.getElementById('editor').style.fontSize='18px';
-    editor.getValue();
+    
     $('#output').html(markdown.toHTML($('#markdown').val()));
     
+    var courseidforclass = '<%=request.getParameter("courseidforclass")%>'
+    var activityid = <%=request.getAttribute("activityid")%>
+    var coursename = '<%=request.getAttribute("coursename")%>'
+    var courseclassnum = '<%=request.getAttribute("courseclassnum")%>'
+    var problemid = <%=request.getAttribute("problemid")%>
+    
+    if(problemid == 1) document.getElementById('prev').disabled = true;
+    if(problemid == <%= acp.size() %>) document.getElementById('next').disabled = true;
+    
     function prev() {
-    	alert("버튼1을 누르셨습니다.");
+    	if(problemid != 1){
+    		location.href ='control.jsp?action=seeproblem&courseidforclass=' + courseidforclass + 
+    		'&coursename=' + coursename + '&courseclassnum=' + courseclassnum + 
+			'&activityid=' + activityid + '&problemid=' + (problemid - 1)
+    	}
+    	
     }
     
     function next() {
-    	alert("버튼1을 누르셨습니다.");
+    	if(problemid != <%= acp.size() %>){
+    		location.href ='control.jsp?action=seeproblem&courseidforclass=' + courseidforclass + 
+    		'&coursename=' + coursename + '&courseclassnum=' + courseclassnum + 
+			'&activityid=' + activityid + '&problemid=' + (problemid + 1)
+    	}
     }
     
+    function unescapeHtml(str) {
+
+    	 if (str == null) {
+    	  return "";
+    	 }
+
+    	 return str
+    	   .replace(/&amp;/g, '&')
+    	   .replace(/&lt;/g, '<')
+    	   .replace(/&gt;/g, '>')
+    	   .replace(/&quot;/g, '"')
+    	   .replace(/&#039;/g, "'")
+    	   .replace(/&#39;/g, "'");
+    	}
+    
     function submit() {
-    	alert("버튼1을 누르셨습니다.");
+    	var form = document.getElementById('forms');
+    	var code = editor.getValue();
+    	code = unescapeHtml(code);
+    	
+    	var hiddenField = document.createElement("input");
+    	hiddenField.setAttribute("type", "hidden");
+    	hiddenField.setAttribute("name", "code");
+    	hiddenField.setAttribute("value", code);
+    	form.appendChild(hiddenField);
+    	
+    	form.submit();
+    }
+    
+    function exit() {
+    	location.href ='control.jsp?action=seecourse_init'
     }
 </script>
         </section>

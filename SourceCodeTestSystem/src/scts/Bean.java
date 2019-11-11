@@ -119,6 +119,7 @@ public class Bean {
 				info.setScore(rs.getDouble("score"));
 				info.setComment(rs.getString("comment"));
 				info.setIsopened(rs.getBoolean("isopened"));
+				info.setLanguage(rs.getInt("language"));
 				
 				activityInfo.add(info);
 			}
@@ -281,6 +282,15 @@ public class Bean {
 			disconnect();
 		}
 		return activityproblems;
+	}
+	
+	public String langInt2Str(int language) {
+		switch(language) {
+		case 0: return ".c";
+		case 1: return ".cpp";
+		case 2: return ".java";
+		default: return ".py";
+		}
 	}
 	
 	/*

@@ -16,7 +16,14 @@ public class ActivityInfo {
 	private double score;
 	private String comment;
 	private boolean isopened;
+	private int language;
 	
+	public int getLanguage() {
+		return language;
+	}
+	public void setLanguage(int language) {
+		this.language = language;
+	}
 	public String getCourseidforclass() {
 		return courseidforclass;
 	}

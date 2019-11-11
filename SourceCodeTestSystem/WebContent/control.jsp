@@ -1,3 +1,5 @@
+<%@page import="java.io.FileOutputStream"%>
+<%@page import="java.io.FileInputStream"%>
 <%@page import="java.text.SimpleDateFormat"%>
 <%@page import="java.text.DateFormat"%>
 <%@page import="java.io.File"%>
@@ -7,6 +9,7 @@
 <!DOCTYPE html>
 <% request.setCharacterEncoding("utf-8"); %>
 <jsp:useBean id="bean" class="scts.Bean"/>
+<jsp:useBean id="cmd" class="scts.Cmd"/>
 
 <%
 	String action = request.getParameter("action");
@@ -106,29 +109,27 @@
 		
 		int count = bean.makeProblem(courseidforclass, num, auto_scoring_yn, problemname);
 		
-		String prob_filename = "prob_" + count + ".txt";
-		String io_filename = "io_" + count + ".txt"; 
+		String prob_filename = "prob.txt";
 		
 		try{
-			
-			String rltv = "/problems/code/" + courseidforclass + "/";
+			String rltv = "/problems/code/" + courseidforclass + "/problems/probnum_" + count + "/";
 			String filePath = application.getRealPath(rltv);
 			File file = new File(filePath);
 			if(!file.exists()) file.mkdirs();
 			PrintWriter pw = new PrintWriter(filePath + prob_filename);
 			pw.println(markdown);
 			pw.close();
-
-			pw = new PrintWriter(filePath + io_filename);
 			
 			for(int i=0; i!=num; ++i){
+				pw = new PrintWriter(filePath + "input_" + (i+1) + ".txt");
 				pw.println(inputs.get(i));
-				pw.println("!-!-!-!-!-!-");
+				pw.close();
+				
+				pw = new PrintWriter(filePath + "output_" + (i+1) + ".txt");
 				pw.println(outputs.get(i));
-				pw.println("!-!-!-!-!-!-");
+				pw.close();
 			}
 			
-			pw.close();
 			out.println("<script>alert('저장 성공');</script>");
 			
 		}catch(Exception e){
@@ -168,6 +169,107 @@
 				starttime, endtime, num - 1, sumScore, probnums, maxscores, id);
 		
 		response.sendRedirect("control.jsp?action=seecourse_init");
+		
+	}
+	
+	if(action.equals("submitproblem")){
+		String code = request.getParameter("code");
+		String id = (String)session.getAttribute("id");
+		
+		String courseidforclass = request.getParameter("courseidforclass");
+		int activityid = Integer.parseInt(request.getParameter("activityid"));
+		int problemid = Integer.parseInt(request.getParameter("problemid"));
+		ArrayList<ActivityInfo> activityInfo = 
+				bean.getActivityInfoForStudent(id, courseidforclass);
+		int language_i = activityInfo.get(activityid-1).getLanguage();
+		String language = bean.langInt2Str(activityInfo.get(activityid-1).getLanguage());
+		String filename;
+		String resp = "";
+		
+		ArrayList<ActivityProblem> acp = bean.getActivityProblem(courseidforclass, activityid);
+		ActivityProblem ap = new ActivityProblem();
+		
+		for(ActivityProblem ap_t : acp){
+			if(ap_t.getProblemid() == problemid){
+				ap = ap_t;
+				break;
+			}
+		}
+		
+		
+		try{
+			String rltv = "/problems/code/" + courseidforclass + "/activities/activity_" + activityid +
+					"/problemid_" + request.getParameter("problemid") + "/" + id + "/";
+			String filePath = application.getRealPath(rltv);
+			File file = new File(filePath);
+			if(!file.exists()) file.mkdirs();
+			filename = id + language;
+			PrintWriter pw = new PrintWriter(filePath + filename);
+			pw.println(code);
+			pw.close();
+			
+			if(ap.isAutocheck()){
+				switch(language_i){
+				case 0:
+				case 1:
+					resp = cmd.cppCompile(filePath, filename);
+					if(resp == null || resp.length() == 0){
+						
+						String rltv_input = "/problems/code/" + courseidforclass +
+								"/problems/probnum_" + ap.getProblemnum() + "/";
+						String filePath_input = application.getRealPath(rltv_input);
+						String code_test = new String(code);
+						
+						if(!code_test.contains("stdio.h"))
+							code_test = "#include <stdio.h>\n" + code_test;
+						int mainIndex = code_test.indexOf("main(");
+						int startIndex = code_test.indexOf('{', mainIndex+1);
+						code_test = code_test.substring(0, startIndex+1) +
+								"\n" +  "freopen(\"input.txt\", \"r\", stdin);\n" +
+								"freopen(\"output.txt\", \"w\", stdout);\n" +
+								code_test.substring(startIndex + 1);
+						pw = new PrintWriter(filePath + id + "_test" + language);
+						pw.println(code_test);
+						pw.close();
+						
+						resp = cmd.cppCompile(filePath, id + "_test" + language);
+						
+						for(int i=0; i!=ap.getTestcasenum(); ++i){
+							File problemInput = new File(filePath_input + "input_" + (i+1) + ".txt");
+							File submitInput = new File(filePath + "input.txt");
+							
+							if(!submitInput.exists()) submitInput.createNewFile();
+							
+							FileInputStream fis = new FileInputStream(problemInput);
+				            FileOutputStream fos = new FileOutputStream(submitInput);
+				            
+				            int fileByte = 0; 
+				            while((fileByte = fis.read()) != -1) {
+				                fos.write(fileByte);
+				            }
+				            fis.close();
+				            fos.close();
+				            
+				            System.out.print(cmd.cppTest(filePath, id + "_test" + language));
+							
+						}
+						
+					}
+				}
+			}
+
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		
+		request.setAttribute("activityinfo", activityInfo.get(activityid-1));
+		request.setAttribute("problemid", request.getParameter("problemid"));
+		request.setAttribute("activityid", request.getParameter("activityid"));
+		request.setAttribute("coursename", request.getParameter("coursename"));
+		request.setAttribute("courseclassnum", request.getParameter("courseclassnum"));
+		request.setAttribute("resp", resp);
+		
+		pageContext.forward("problem.jsp");
 		
 	}
 %>
