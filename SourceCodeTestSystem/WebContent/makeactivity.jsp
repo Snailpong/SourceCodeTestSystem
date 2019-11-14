@@ -26,10 +26,9 @@
 <br><br>종료 시간
 <input type="datetime-local" id="endtime"
        name="endtime">
-<br><br>분석여부 <select name="analysis_yn">
+<br><br>형식 분석 여부 <select name="analysis_yn">
 	<option value="no">N</option>
 	<option value="yes">Y</option>
-
 </select>
 <br><br>비밀번호 설정 
 <select name="ispassword">

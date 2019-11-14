@@ -31,6 +31,8 @@
 	<option value="auto">자동 채점</option>
 	<option value="notauto">수동 채점</option>
 </select>
+<br><br>스켈레톤 코드<br>
+<textarea name="skeleton" style="width:800px; height: 400px;" ></textarea>
 
 <br><br>테스트 케이스<br>
 <button type="button" name="addStaff">테스트 케이스 추가</button>

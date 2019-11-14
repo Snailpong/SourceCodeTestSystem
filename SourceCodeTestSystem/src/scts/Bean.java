@@ -293,6 +293,92 @@ public class Bean {
 		}
 	}
 	
+	public String langInt2Opt(int language) {
+		switch(language) {
+		case 0: return "c_cpp";
+		case 1: return "c_cpp";
+		case 2: return "java";
+		default: return "python";
+		}
+	}
+	
+	public String getExample(int language) {
+		switch(language) {
+		case 0: return "#include <stdio.h>\nint main(){\n\n    printf(\"Hello World\\n\");\n    return 0;\n}";
+		case 1: return "#include <iostream>\nusing namespace std;\n\nint main(){\n\n    cout << \"Hello World\";\n    return 0;\n}";
+		case 2: return "public class Main{\r\n" + 
+				"	public static void main(String args[]){\r\n" + 
+				"		System.out.println(\"Hello World\");\r\n" + 
+				"	}\r\n" + 
+				"}";
+		default: return "print('Hello World')";
+		}
+	}
+	
+	public boolean insertScore(String id, String courseidforclass, int activityid, int problemid, double score) {
+		connect();
+		double sumScore = 0;
+		String sql 
+		 = "insert into activityproblemscore(courseidforclass, activityid, problemid, id, score) values(?,?,?,?,?) on duplicate key update score=?";
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, courseidforclass);
+			pstmt.setInt(2, activityid);
+			pstmt.setInt(3, problemid);
+			pstmt.setString(4, id);
+			pstmt.setDouble(5, score);
+			pstmt.setDouble(6, score);
+			pstmt.executeUpdate();
+			
+			pstmt = conn.prepareStatement("SELECT SUM(score) FROM activityproblemscore where courseidforclass=? and activityid=? and id=?");
+			pstmt.setString(1, courseidforclass);
+			pstmt.setInt(2, activityid);
+			pstmt.setString(3, id);
+			ResultSet rs = pstmt.executeQuery();
+			rs.next();
+			sumScore = rs.getDouble("SUM(score)");
+			
+			pstmt = conn.prepareStatement("insert into grade(id, courseidforclass, activityid, score) values(?,?,?,?) on duplicate key update score=?");
+			pstmt.setString(1, id);
+			pstmt.setString(2, courseidforclass);
+			pstmt.setInt(3, activityid);
+			pstmt.setDouble(4, sumScore);
+			pstmt.setDouble(5, sumScore);
+			pstmt.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+		finally {
+			disconnect();
+		}
+		return true;
+	}
+	
+	public double getProblemScore(String id, String courseidforclass, int activityid, int problemid) {
+		double sumScore;
+		connect();
+		String sql 
+		 = "SELECT SUM(score) FROM activityproblemscore where courseidforclass=? and activityid=? and problemid=? and id=?";
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, courseidforclass);
+			pstmt.setInt(2, activityid);
+			pstmt.setInt(3, problemid);
+			pstmt.setString(4, id);
+			ResultSet rs = pstmt.executeQuery();
+			rs.next();
+			sumScore = rs.getDouble("SUM(score)");
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0.0;
+		}
+		finally {
+			disconnect();
+		}
+		return sumScore;
+	}
+	
 	/*
 	
 	// �닔�젙�맂 二쇱냼濡� �궡�슜 媛깆떊�쓣 �쐞�븳 硫붿꽌�뱶

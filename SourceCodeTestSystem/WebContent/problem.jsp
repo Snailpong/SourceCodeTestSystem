@@ -31,12 +31,13 @@
 </head>
 <body>
 <%! String result = ""; %>
-<%! String code = "#include <stdio.h>\nint main(){\n    printf(\"Hello World\\n\");\n    return 0;\n}"; %>
+<%! String code; %>
 <%
 	String courseidforclass =  request.getParameter("courseidforclass");
 	int problemid = Integer.parseInt(request.getParameter("problemid"));
 	String id = (String)session.getAttribute("id");
 	String activityid = request.getParameter("activityid");
+	double currentscore = bean.getProblemScore(id, courseidforclass, Integer.parseInt(activityid), problemid);
 	ArrayList<ActivityInfo> infos = bean.getActivityInfoForStudent((String)session.getAttribute("id"), courseidforclass);
 	
 	ActivityInfo info = new ActivityInfo();
@@ -46,6 +47,15 @@
 			break;
 		}
 	}
+	
+	int language = info.getLanguage();
+	Date nowTime = new Date();
+	Date startTime = info.getStarttime();
+	Date endTime = info.getEndtime();
+	String disable = "";
+	
+	if(!(nowTime.compareTo(startTime) == 1 && nowTime.compareTo(endTime) == -1))
+		disable = "disabled";
 	
 	ArrayList<ActivityProblem> acp = bean.getActivityProblem(courseidforclass, info.getActivityid());
 	ActivityProblem ap = new ActivityProblem();
@@ -58,6 +68,7 @@
 	}
 	
 	int problemnum = ap.getProblemnum();
+	code = bean.getExample(problemnum);
 	
 	String problem_markdown = "";
 	String prob_filename = "prob.txt";
@@ -124,7 +135,7 @@
             <td style="width:calc(100vw - 300px)"><div style = "padding: 10px 10px 0px 0px; float:right">
             	<button id="prev" onclick="prev();">이전 문제</button>
             	<button id="next" onclick="next();">다음 문제</button>
-            	<button onclick="submit();">제출</button>
+            	<button onclick="submit();" <%= disable %>>제출</button>
             	<button id="exit" onclick="exit();">종료</button></div></td>
         </tr></table></header>
         <!--네비게이션-->
@@ -134,7 +145,7 @@
 		      <div id="content" class="section">
 		        <div id="edit" class="mode">
 		          <div class="content" style="display:none">
-		            <textarea id="markdown"><%= problem_markdown %></textarea>
+		            <textarea id="markdown" ><%= problem_markdown %></textarea>
 		          </div>
 		        </div>
 		
@@ -161,9 +172,10 @@
 <script>
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/chrome");
-    editor.session.setMode("ace/mode/java");
+    editor.session.setMode("ace/mode/<%= bean.langInt2Opt(language) %>");
     document.getElementById('editor').style.fontSize='18px';
     
+
     $('#output').html(markdown.toHTML($('#markdown').val()));
     
     var courseidforclass = '<%=request.getParameter("courseidforclass")%>'
@@ -171,9 +183,12 @@
     var coursename = '<%=request.getAttribute("coursename")%>'
     var courseclassnum = '<%=request.getAttribute("courseclassnum")%>'
     var problemid = <%=request.getAttribute("problemid")%>
+    var selected = "";
     
     if(problemid == 1) document.getElementById('prev').disabled = true;
     if(problemid == <%= acp.size() %>) document.getElementById('next').disabled = true;
+    
+    const editorContainer = document.getElementById('editorContainer');
     
     function prev() {
     	if(problemid != 1){
@@ -224,10 +239,14 @@
     function exit() {
     	location.href ='control.jsp?action=seecourse_init'
     }
+   
 </script>
         </section>
         <!--풋터-->
         <footer>
+        <table style="padding: 10px 10px 0px 0px; float:right">
+        <tr><td width="100px"><b>문제 점수</b></td><td width="110px"><%= currentscore %> / <%= ap.getMaxscore() %></td>
+        <td width="100px"><b>총 점수</b></td><td width="100px"><%= info.getScore() %> / <%= info.getMaxscore() %></td></tr></table>
         </footer>
     </div>
 </body>

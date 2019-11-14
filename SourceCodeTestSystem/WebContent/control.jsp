@@ -1,3 +1,5 @@
+<%@page import="java.io.FileReader"%>
+<%@page import="java.io.BufferedReader"%>
 <%@page import="java.io.FileOutputStream"%>
 <%@page import="java.io.FileInputStream"%>
 <%@page import="java.text.SimpleDateFormat"%>
@@ -96,6 +98,12 @@
 		String problemname = request.getParameter("problemname");
 		boolean auto_scoring_yn = request.getParameter("auto_scoring_yn").equals("auto");
 		String markdown = request.getParameter("markdown");
+		String skeleton = request.getParameter("skeleton");
+		
+		skeleton.replaceAll("\n", "");
+		skeleton.replaceAll(" ", "");
+		skeleton.replaceAll("\r", "");
+		skeleton.replaceAll("\t", "");
 		
 		ArrayList<String> inputs = new ArrayList<String>();
 		ArrayList<String> outputs = new ArrayList<String>();
@@ -118,6 +126,10 @@
 			if(!file.exists()) file.mkdirs();
 			PrintWriter pw = new PrintWriter(filePath + prob_filename);
 			pw.println(markdown);
+			pw.close();
+			
+			pw = new PrintWriter(filePath + "skeleton.txt");
+			pw.print(skeleton);
 			pw.close();
 			
 			for(int i=0; i!=num; ++i){
@@ -234,6 +246,8 @@
 						
 						resp = cmd.cppCompile(filePath, id + "_test" + language);
 						
+						int correct = 0;
+						
 						for(int i=0; i!=ap.getTestcasenum(); ++i){
 							File problemInput = new File(filePath_input + "input_" + (i+1) + ".txt");
 							File submitInput = new File(filePath + "input.txt");
@@ -250,9 +264,55 @@
 				            fis.close();
 				            fos.close();
 				            
-				            System.out.print(cmd.cppTest(filePath, id + "_test" + language));
+				            long start = System.currentTimeMillis();
+				            resp += cmd.cppTest(filePath, id + "_test" + language);
+				            long end = System.currentTimeMillis();
+				            long millis = end - start;
+				            
+				            File problemOutput = new File(filePath_input + "output_" + (i+1) + ".txt");
+							File submitOutput = new File(filePath + "output.txt");
+							
+							if(!submitOutput.exists()) submitOutput.createNewFile();
+							
+							String answer_output = "";
+							String submit_output = "";
+							
+							try (BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath_input + "output_" + (i+1) + ".txt"))) {
+						    	String line;
+						      	while((line = bufferedReader.readLine()) != null) {
+						      		int nbsp = 0;
+						      		while(line.charAt(nbsp) == ' ') nbsp++;
+						      		line = String.join("", Collections.nCopies(nbsp, "&nbsp;")) + line;
+						      		answer_output += line + "  \n";
+						      	}
+						    } catch(Exception e){
+						    	e.printStackTrace();
+						    }
+							
+							try (BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath + "output.txt"))) {
+						    	String line;
+						      	while((line = bufferedReader.readLine()) != null) {
+						      		int nbsp = 0;
+						      		while(line.charAt(nbsp) == ' ') nbsp++;
+						      		line = String.join("", Collections.nCopies(nbsp, "&nbsp;")) + line;
+						      		submit_output += line + "  \n";
+						      	}
+						    } catch(Exception e){
+						    	e.printStackTrace();
+						    }
+							
+							if(answer_output.equals(submit_output)){
+								resp += "Test case #" + (i+1) + ": Correct (" + millis + "ms)<br>";
+								correct++;
+							} else {
+								resp += "Test case #" + (i+1) + ": Wrong" + "<br>";
+							}
 							
 						}
+						double score = ap.getMaxscore() * correct / ap.getTestcasenum(); 
+						resp += "→ Score : " + score  + " / " + ap.getMaxscore();
+								
+						bean.insertScore(id, courseidforclass, activityid, problemid, score);
 						
 					}
 				}
