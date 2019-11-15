@@ -17,7 +17,14 @@ public class ActivityInfo {
 	private String comment;
 	private boolean isopened;
 	private int language;
+	private int problemcount;
 	
+	public int getProblemcount() {
+		return problemcount;
+	}
+	public void setProblemcount(int problemcount) {
+		this.problemcount = problemcount;
+	}
 	public int getLanguage() {
 		return language;
 	}

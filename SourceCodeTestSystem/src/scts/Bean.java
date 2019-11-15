@@ -120,6 +120,7 @@ public class Bean {
 				info.setComment(rs.getString("comment"));
 				info.setIsopened(rs.getBoolean("isopened"));
 				info.setLanguage(rs.getInt("language"));
+				info.setProblemcount(rs.getInt("numberofproblem"));
 				
 				activityInfo.add(info);
 			}
@@ -299,6 +300,7 @@ public class Bean {
 		case 1: return "c_cpp";
 		case 2: return "java";
 		default: return "python";
+		
 		}
 	}
 	
@@ -378,53 +380,30 @@ public class Bean {
 		}
 		return sumScore;
 	}
-	
-	/*
-	
-	// �닔�젙�맂 二쇱냼濡� �궡�슜 媛깆떊�쓣 �쐞�븳 硫붿꽌�뱶
-	public boolean updateDB(AddrBook addrbook) {
+
+	public ArrayList<ScoreInfo> getActivityResult(String courseidforclass, int activityid) {
 		connect();
-		
-		String sql ="update addrbook set ab_name=?, ab_email=?, ab_birth=?, ab_tel=?, ab_comdept=?, ab_memo=? where ab_id=?";		
-		 
+		ArrayList<ScoreInfo> scores = new ArrayList<ScoreInfo>();
+		String sql = "select g.id, g.score, m.name from grade as g natural join members as m "
+				+ "where g.courseidforclass='" + courseidforclass +"' and g.activityid=" + activityid + " order by m.name";
 		try {
 			pstmt = conn.prepareStatement(sql);
-			pstmt.setString(1,addrbook.getAb_name());
-			pstmt.setString(2,addrbook.getAb_email());
-			pstmt.setString(3, addrbook.getAb_birth());
-			pstmt.setString(4,addrbook.getAb_tel());
-			pstmt.setString(5,addrbook.getAb_comdept());
-			pstmt.setString(6,addrbook.getAb_memo());
-			pstmt.setInt(7,addrbook.getAb_id());
-			pstmt.executeUpdate();
-		} catch (SQLException e) {
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				ScoreInfo score = new ScoreInfo();
+				
+				score.setId(rs.getString("id"));
+				score.setScore(rs.getDouble("score"));
+				score.setName(rs.getString("name"));
+				
+				scores.add(score);
+			}
+			rs.close();
+		} catch(SQLException e) {
 			e.printStackTrace();
-			return false;
-		}
-		finally {
+		} finally {
 			disconnect();
 		}
-		return true;
+		return scores;
 	}
-	
-	// �듅�젙 二쇱냼濡� 寃뚯떆湲� �궘�젣 硫붿꽌�뱶
-	public boolean deleteDB(int gb_id) {
-		connect();
-		
-		String sql ="delete from addrbook where ab_id=?";
-		
-		try {
-			pstmt = conn.prepareStatement(sql);
-			pstmt.setInt(1,gb_id);
-			pstmt.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return false;
-		}
-		finally {
-			disconnect();
-		}
-		return true;
-	}
-*/
 }

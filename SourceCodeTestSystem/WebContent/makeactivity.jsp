@@ -30,11 +30,7 @@
 	<option value="no">N</option>
 	<option value="yes">Y</option>
 </select>
-<br><br>비밀번호 설정 
-<select name="ispassword">
-	<option value="no">N</option>
-	<option value="yes">Y</option></select>
-<input type="text" id="password">
+<input type=hidden name="ispassword" value="N">
 
 <br><br>
 <button type="button" name="addStaff">문제 추가</button>

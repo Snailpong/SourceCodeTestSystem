@@ -100,11 +100,6 @@
 		String markdown = request.getParameter("markdown");
 		String skeleton = request.getParameter("skeleton");
 		
-		skeleton.replaceAll("\n", "");
-		skeleton.replaceAll(" ", "");
-		skeleton.replaceAll("\r", "");
-		skeleton.replaceAll("\t", "");
-		
 		ArrayList<String> inputs = new ArrayList<String>();
 		ArrayList<String> outputs = new ArrayList<String>();
 		int num = 0;
@@ -220,7 +215,39 @@
 			pw.println(code);
 			pw.close();
 			
-			if(ap.isAutocheck()){
+			
+			String skeleton = "";
+			String rltv_ske = "/problems/code/" + courseidforclass +
+					"/problems/probnum_" + ap.getProblemnum() + "/";
+			String filePath_ske = application.getRealPath(rltv_ske);
+			
+			try (BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath_ske + "skeleton.txt"))) {
+		    	String line;
+		      	while((line = bufferedReader.readLine()) != null) {
+		      		skeleton += line;
+		      	}
+		    } catch(Exception e){
+		    	e.printStackTrace();
+		    }
+			
+			int sub_p = 0, ske_p = 0;
+			while(sub_p != code.length() && ske_p != skeleton.length()){
+				if(code.charAt(sub_p) == ' ') sub_p++;
+				else if(code.charAt(sub_p) == '\n') sub_p++;
+				else if(code.charAt(sub_p) == '\t') sub_p++;
+				else if(skeleton.charAt(ske_p) == ' ') ske_p++;
+				else if(skeleton.charAt(ske_p) == '\n') ske_p++;
+				else if(skeleton.charAt(ske_p) == '\t') ske_p++;
+				else if(code.charAt(sub_p) == skeleton.charAt(ske_p)){
+					sub_p++;
+					ske_p++;
+				} else sub_p++;
+			}
+			
+			if(activityInfo.get(activityid-1).isOopcheck() && ske_p != skeleton.length()){
+				resp = "형식이 잘못되었습니다. 타입이나 코드에 잘못된 부분이 있는지 확인하세요.";
+			}
+			else if(ap.isAutocheck()){
 				switch(language_i){
 				case 0:
 				case 1:
