@@ -5,7 +5,7 @@
         height: 100%;
         margin: 0;
     	padding: 0;
-    	font-family: NanumSquare;
+    	font-family: Consolas, NanumSquare;
     	line-height: 150%;
     	white-space: normal;
     	word-break: break-word;
@@ -85,4 +85,8 @@
     font#date {
     	font-size: small;
     	color: orange;
+    }
+    div#over {
+    	height: 160px;
+        overflow-y:scroll;
     }
